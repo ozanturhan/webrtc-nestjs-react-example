@@ -83,7 +83,9 @@ class PeerConnectionSession {
 }
 
 export const createPeerConnectionContext = () => {
-  const peerConnection = new RTCPeerConnection();
+  const peerConnection = new RTCPeerConnection({
+    iceServers: [{ url: 'stun:stun2.1.google.com:19302' }],
+  });
   console.log('Socket URL', process.env.REACT_APP_SOCKET_URL);
   const socket = io(process.env.REACT_APP_SOCKET_URL);
 
