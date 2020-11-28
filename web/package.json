@@ -18,7 +18,7 @@
   "scripts": {
     "start": "react-scripts start",
     "postinstall": "npm run build",
-    "build": "GENERATE_SOURCEMAP=false react-scripts build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config .prettierrc"
