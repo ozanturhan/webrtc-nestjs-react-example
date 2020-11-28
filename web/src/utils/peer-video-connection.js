@@ -2,11 +2,23 @@ import * as io from 'socket.io-client';
 
 const { RTCPeerConnection, RTCSessionDescription } = window;
 
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
 class PeerConnectionSession {
+  _onConnected;
+  _onDisconnected;
+
   constructor(socket, peerConnection) {
     this.socket = socket;
     this.peerConnection = peerConnection;
 
+    this.peerConnection.addEventListener('connectionstatechange', (event) => {
+      console.log(this.peerConnection.connectionState);
+      const fn = this['_on' + capitalizeFirstLetter(this.peerConnection.connectionState)];
+      fn && fn(event);
+    });
     this.onCallMade();
   }
 
@@ -18,6 +30,14 @@ class PeerConnectionSession {
     await this.peerConnection.setLocalDescription(new RTCSessionDescription(offer));
 
     this.socket.emit('call-user', { offer, to });
+  }
+
+  onConnected(callback) {
+    this._onConnected = callback;
+  }
+
+  onDisconnected(callback) {
+    this._onDisconnected = callback;
   }
 
   onCallMade() {

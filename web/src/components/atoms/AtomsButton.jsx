@@ -9,6 +9,12 @@ export const Button = styled.button`
   border-radius: 5px;
   color: white;
   font-weight: bold;
+  margin-right: 10px;
+
+  &:last-child {
+    margin: 0px;
+  }
+
   &:focus {
     outline: none;
   }

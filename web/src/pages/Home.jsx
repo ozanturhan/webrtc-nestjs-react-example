@@ -13,9 +13,13 @@ export const Home = () => {
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [userMediaStream, setUserMediaStream] = useState(null);
   const [displayMediaStream, setDisplayMediaStream] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [startTimer, setStartTimer] = useState(false);
+  const [isFullScreen, setFullScreen] = useState(false);
 
   const localVideo = useRef();
   const remoteVideo = useRef();
+  const mainRef = useRef();
 
   useEffect(() => {
     const createMediaStream = async () => {
@@ -45,6 +49,18 @@ export const Home = () => {
   }, [userMediaStream]);
 
   useEffect(() => {
+    let interval;
+    if (startTimer) {
+      interval = setInterval(() => setElapsedTime((time) => time + 1), 1000);
+    } else {
+      setElapsedTime(0);
+      remoteVideo.current.srcObject = null;
+    }
+
+    return () => clearInterval(interval);
+  }, [startTimer]);
+
+  useEffect(() => {
     peerVideoConnection.onRemoveUser((socketId) =>
       setConnectedUsers((users) => users.filter((user) => user !== socketId)),
     );
@@ -52,6 +68,11 @@ export const Home = () => {
     peerVideoConnection.onAnswerMade((socket) => peerVideoConnection.callUser(socket));
     peerVideoConnection.onCallRejected((data) => alert(`User: "Socket: ${data.socket}" rejected your call.`));
     peerVideoConnection.onTrack((stream) => (remoteVideo.current.srcObject = stream));
+
+    peerVideoConnection.onConnected(() => {
+      setStartTimer(true);
+    });
+    peerVideoConnection.onDisconnected(() => setStartTimer(false));
   }, []);
 
   async function shareScreen() {
@@ -78,11 +99,49 @@ export const Home = () => {
     setDisplayMediaStream(null);
   }
 
+  function formatElapsedTime() {
+    return new Date(elapsedTime * 1000).toISOString().substr(11, 8);
+  }
+
   const ShareButton = () =>
     displayMediaStream ? (
       <Button onClick={() => cancelScreenSharing(displayMediaStream)}>Cancel</Button>
     ) : (
       <Button onClick={() => shareScreen()}>Share Screen</Button>
+    );
+
+  function fullScreen() {
+    setFullScreen(true);
+    const elem = mainRef.current;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    } else if (elem.mozRequestFullScreen) {
+      elem.mozRequestFullScreen();
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    }
+  }
+
+  function cancelFullScreen() {
+    setFullScreen(false);
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+
+  const FullScreenButton = () =>
+    isFullScreen ? (
+      <Button onClick={() => cancelFullScreen()}>Exit Full Screen</Button>
+    ) : (
+      <Button onClick={() => fullScreen()}>Full Screen</Button>
     );
 
   return (
@@ -94,13 +153,27 @@ export const Home = () => {
         picture={logo}
       />
 
-      <OrganismsMain>
+      <OrganismsMain ref={mainRef}>
         <MoleculesRemoteVideo ref={remoteVideo} autoPlay />
 
         <MoleculesLocalVideo ref={localVideo} autoPlay muted />
 
-        <div style={{ position: 'absolute', bottom: '24px' }}>
-          <ShareButton />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '24px',
+            display: 'flex',
+            justifyContent: 'center',
+            width: '100%',
+          }}
+        >
+          <div>
+            <ShareButton />
+            <FullScreenButton />
+          </div>
+          <span style={{ color: 'white', fontWeight: 'bold', right: '40px', bottom: '12px', position: 'absolute' }}>
+            {formatElapsedTime()}
+          </span>
         </div>
       </OrganismsMain>
     </div>
