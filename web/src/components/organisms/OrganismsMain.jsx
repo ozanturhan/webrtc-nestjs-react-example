@@ -1,0 +1,21 @@
+import styled from 'styled-components';
+import React from 'react';
+
+export const OrganismsMain = styled.main`
+  flex: 1;
+  position: relative;
+  margin-left: 280px;
+  height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: black;
+
+  @media screen and (max-width: 936px) {
+    margin-left: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    z-index: inherit;
+  }
+`;
