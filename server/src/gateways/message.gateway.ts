@@ -55,8 +55,8 @@ export class MessageGateway
     client.broadcast.emit('remove-user', {
       socketId: client.id,
     });
-
-    return this.logger.log(`Client disconnected: ${client.id}`);
+    
+    this.logger.log(`Client disconnected: ${client.id}`);
   }
 
   public handleConnection(client: Socket): void {
@@ -77,6 +77,7 @@ export class MessageGateway
         users: [client.id],
       });
     }
-    return this.logger.log(`Client connected: ${client.id}`);
+    
+    this.logger.log(`Client connected: ${client.id}`);
   }
 }
