@@ -1,8 +1,19 @@
 import React from 'react';
-import { Home } from './pages';
+import { Main, Room } from './pages';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 
 function App() {
-  console.log(process.env);
-  return <Home />;
+  return (
+    <Router>
+      <Switch>
+        <Route exact path="/">
+          <Main />
+        </Route>
+        <Route exact path="/:room">
+          <Room />
+        </Route>
+      </Switch>
+    </Router>
+  );
 }
 export default App;

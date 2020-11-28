@@ -4,12 +4,12 @@ import React from 'react';
 export const OrganismsMain = styled.main`
   flex: 1;
   position: relative;
-  margin-left: 280px;
+  margin-left: ${(props) => (props.full ? '0' : '280px')};
   height: calc(100vh - 64px);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: black;
+  background: ${(props) => (props.full ? '#16202c' : 'black')};
 
   @media screen and (max-width: 936px) {
     margin-left: 0;

@@ -1,5 +1,4 @@
 import {
-  OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
   SubscribeMessage,
@@ -12,13 +11,39 @@ import { Server } from 'ws';
 import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({ namespace: 'chat' })
-export class MessageGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class MessageGateway implements OnGatewayInit, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
-  private activeSockets: string[] = [];
+  private activeSockets: { room: string; id: string }[] = [];
 
   private logger: Logger = new Logger('MessageGateway');
+
+  @SubscribeMessage('joinRoom')
+  public joinRoom(client: Socket, room: string): void {
+    /*
+    client.join(room);
+    client.emit('joinedRoom', room);
+    */
+
+    const existingSocket = this.activeSockets?.find(
+      (socket) => socket.room === room && socket.id === client.id,
+    );
+
+    if (!existingSocket) {
+      this.activeSockets = [...this.activeSockets, { id: client.id, room }];
+      client.emit(`${room}-update-user-list`, {
+        users: this.activeSockets
+          .filter((socket) => socket.room === room && socket.id !== client.id)
+          .map((existingSocket) => existingSocket.id),
+      });
+
+      client.broadcast.emit(`${room}-update-user-list`, {
+        users: [client.id],
+      });
+    }
+
+    return this.logger.log(`Client ${client.id} joined ${room}`);
+  }
 
   @SubscribeMessage('call-user')
   public callUser(client: Socket, data: any): void {
@@ -44,40 +69,24 @@ export class MessageGateway
   }
 
   public afterInit(server: Server): void {
-    return this.logger.log('Init');
+    this.logger.log('Init');
   }
 
   public handleDisconnect(client: Socket): void {
-    this.activeSockets = this.activeSockets.filter(
-      (existingSocket) => existingSocket !== client.id,
+    const existingSocket = this.activeSockets.find(
+      (socket) => socket.id === client.id,
     );
 
-    client.broadcast.emit('remove-user', {
+    if (!existingSocket) return;
+
+    this.activeSockets = this.activeSockets.filter(
+      (socket) => socket.id !== client.id,
+    );
+
+    client.broadcast.emit(`${existingSocket.room}-remove-user`, {
       socketId: client.id,
     });
-    
+
     this.logger.log(`Client disconnected: ${client.id}`);
-  }
-
-  public handleConnection(client: Socket): void {
-    const existingSocket = this.activeSockets.find(
-      (existingSocket) => existingSocket === client.id,
-    );
-
-    if (!existingSocket) {
-      this.activeSockets.push(client.id);
-
-      client.emit('update-user-list', {
-        users: this.activeSockets.filter(
-          (existingSocket) => existingSocket !== client.id,
-        ),
-      });
-
-      client.broadcast.emit('update-user-list', {
-        users: [client.id],
-      });
-    }
-    
-    this.logger.log(`Client connected: ${client.id}`);
   }
 }

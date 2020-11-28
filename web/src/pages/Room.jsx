@@ -5,11 +5,13 @@ import { MoleculesLocalVideo, MoleculesRemoteVideo } from '../components/molecul
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '../components/atoms';
 import { createPeerConnectionContext } from '../utils/peer-video-connection';
+import { useParams } from 'react-router-dom';
 
 const senders = [];
 const peerVideoConnection = createPeerConnectionContext();
 
-export const Home = () => {
+export const Room = () => {
+  const { room } = useParams();
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [userMediaStream, setUserMediaStream] = useState(null);
   const [displayMediaStream, setDisplayMediaStream] = useState(null);
@@ -61,6 +63,7 @@ export const Home = () => {
   }, [startTimer]);
 
   useEffect(() => {
+    peerVideoConnection.joinRoom(room);
     peerVideoConnection.onRemoveUser((socketId) =>
       setConnectedUsers((users) => users.filter((user) => user !== socketId)),
     );

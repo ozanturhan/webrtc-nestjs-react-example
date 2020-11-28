@@ -9,6 +9,7 @@ function capitalizeFirstLetter(string) {
 class PeerConnectionSession {
   _onConnected;
   _onDisconnected;
+  _room;
 
   constructor(socket, peerConnection) {
     this.socket = socket;
@@ -40,6 +41,11 @@ class PeerConnectionSession {
     this._onDisconnected = callback;
   }
 
+  joinRoom(room) {
+    this._room = room;
+    this.socket.emit('joinRoom', room);
+  }
+
   onCallMade() {
     this.socket.on('call-made', async (data) => {
       if (this.getCalled) {
@@ -67,13 +73,13 @@ class PeerConnectionSession {
   }
 
   onRemoveUser(callback) {
-    this.socket.on('update-user-list', ({ users }) => {
-      callback(users);
+    this.socket.on(`${this._room}-remove-user`, ({ socketId }) => {
+      callback(socketId);
     });
   }
 
   onUpdateUserList(callback) {
-    this.socket.on('update-user-list', ({ users }) => {
+    this.socket.on(`${this._room}-update-user-list`, ({ users }) => {
       callback(users);
     });
   }
@@ -104,7 +110,7 @@ class PeerConnectionSession {
 
 export const createPeerConnectionContext = () => {
   const peerConnection = new RTCPeerConnection({
-     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
   });
   console.log('Socket URL', process.env.REACT_APP_SOCKET_URL);
   const socket = io(process.env.REACT_APP_SOCKET_URL);

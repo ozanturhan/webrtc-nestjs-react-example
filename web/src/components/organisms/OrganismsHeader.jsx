@@ -59,11 +59,13 @@ export const OrganismsHeader = ({ title, picture, navItems, onNavItemSelect }) =
           <AtomsProfilePicture picture={picture} />
         </div>
       </HeaderContainer>
-      <MoleculesLeftSide
-        isLeftSideShow={isLeftSideShow}
-        onItemSelect={(user) => onNavItemSelect(user)}
-        items={navItems}
-      />
+      {navItems && (
+        <MoleculesLeftSide
+          isLeftSideShow={isLeftSideShow}
+          onItemSelect={(user) => onNavItemSelect(user)}
+          items={navItems}
+        />
+      )}
     </>
   );
 };
