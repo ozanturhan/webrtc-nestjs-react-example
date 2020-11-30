@@ -1,6 +1,7 @@
 import styled from 'styled-components';
+import { AtomsVideo } from '../atoms';
 
-export const MoleculesLocalVideo = styled.video`
+export const MoleculesLocalVideo = styled(AtomsVideo)`
   position: relative;
   width: 100%;
   background: black;

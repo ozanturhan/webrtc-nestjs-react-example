@@ -1,6 +1,7 @@
 import styled from 'styled-components';
+import { AtomsVideo } from '../atoms';
 
-export const MoleculesRemoteVideo = styled.video`
+export const MoleculesRemoteVideo = styled(AtomsVideo).video`
   background: black;
   width: 100%;
   height: 100%;
