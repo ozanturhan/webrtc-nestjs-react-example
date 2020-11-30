@@ -1,9 +1,8 @@
 import styles from '../App.css';
 import { OrganismsHeader, OrganismsMain } from '../components/organisms';
 import logo from '../images/logo.svg';
-import { MoleculesLocalVideo, MoleculesRemoteVideo } from '../components/molecules';
+import { MoleculesLocalVideo, MoleculesRemoteVideo, MoleculesVideoControls } from '../components/molecules';
 import React, { useEffect, useRef, useState } from 'react';
-import { Button } from '../components/atoms';
 import { createPeerConnectionContext } from '../utils/peer-video-connection';
 import { useParams } from 'react-router-dom';
 
@@ -15,7 +14,6 @@ export const Room = () => {
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [userMediaStream, setUserMediaStream] = useState(null);
   const [displayMediaStream, setDisplayMediaStream] = useState(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
   const [startTimer, setStartTimer] = useState(false);
   const [isFullScreen, setFullScreen] = useState(false);
 
@@ -51,18 +49,6 @@ export const Room = () => {
   }, [userMediaStream]);
 
   useEffect(() => {
-    let interval;
-    if (startTimer) {
-      interval = setInterval(() => setElapsedTime((time) => time + 1), 1000);
-    } else {
-      setElapsedTime(0);
-      remoteVideo.current.srcObject = null;
-    }
-
-    return () => clearInterval(interval);
-  }, [startTimer]);
-
-  useEffect(() => {
     peerVideoConnection.joinRoom(room);
     peerVideoConnection.onRemoveUser((socketId) =>
       setConnectedUsers((users) => users.filter((user) => user !== socketId)),
@@ -75,7 +61,10 @@ export const Room = () => {
     peerVideoConnection.onConnected(() => {
       setStartTimer(true);
     });
-    peerVideoConnection.onDisconnected(() => setStartTimer(false));
+    peerVideoConnection.onDisconnected(() => {
+      setStartTimer(false);
+      remoteVideo.current.srcObject = null;
+    });
   }, []);
 
   async function shareScreen() {
@@ -102,17 +91,6 @@ export const Room = () => {
     setDisplayMediaStream(null);
   }
 
-  function formatElapsedTime() {
-    return new Date(elapsedTime * 1000).toISOString().substr(11, 8);
-  }
-
-  const ShareButton = () =>
-    displayMediaStream ? (
-      <Button onClick={() => cancelScreenSharing(displayMediaStream)}>Cancel</Button>
-    ) : (
-      <Button onClick={() => shareScreen()}>Share Screen</Button>
-    );
-
   function fullScreen() {
     setFullScreen(true);
     const elem = mainRef.current;
@@ -128,7 +106,6 @@ export const Room = () => {
   }
 
   function cancelFullScreen() {
-    setFullScreen(false);
     if (document.exitFullscreen) {
       document.exitFullscreen();
     } else if (document.mozCancelFullScreen) {
@@ -140,12 +117,22 @@ export const Room = () => {
     }
   }
 
-  const FullScreenButton = () =>
-    isFullScreen ? (
-      <Button onClick={() => cancelFullScreen()}>Exit Full Screen</Button>
-    ) : (
-      <Button onClick={() => fullScreen()}>Full Screen</Button>
-    );
+  function handleFullScreen(isFullScreen) {
+    setFullScreen(isFullScreen);
+    if (isFullScreen) {
+      fullScreen();
+    } else {
+      cancelFullScreen();
+    }
+  }
+
+  async function handleScreenSharing(isScreenShared) {
+    if (isScreenShared) {
+      await shareScreen();
+    } else {
+      await cancelScreenSharing(displayMediaStream);
+    }
+  }
 
   return (
     <div className={styles.container}>
@@ -158,26 +145,14 @@ export const Room = () => {
 
       <OrganismsMain ref={mainRef}>
         <MoleculesRemoteVideo ref={remoteVideo} autoPlay />
-
         <MoleculesLocalVideo ref={localVideo} autoPlay muted />
-
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '24px',
-            display: 'flex',
-            justifyContent: 'center',
-            width: '100%',
-          }}
-        >
-          <div>
-            <ShareButton />
-            <FullScreenButton />
-          </div>
-          <span style={{ color: 'white', fontWeight: 'bold', right: '40px', bottom: '12px', position: 'absolute' }}>
-            {formatElapsedTime()}
-          </span>
-        </div>
+        <MoleculesVideoControls
+          isScreenSharing={Boolean(displayMediaStream)}
+          onScreenShare={handleScreenSharing}
+          isFullScreen={isFullScreen}
+          onFullScreen={handleFullScreen}
+          isTimerStarted={startTimer}
+        />
       </OrganismsMain>
     </div>
   );
