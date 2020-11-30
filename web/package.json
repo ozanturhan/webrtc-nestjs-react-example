@@ -6,6 +6,8 @@
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
+    "express": "^4.17.1",
+    "express-favicon": "^2.0.1",
     "prettier": "^2.2.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
@@ -17,9 +19,10 @@
     "webrtc-adapter": "^7.7.0"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start:dev": "react-scripts start",
+    "start:prod": "node server.js",
     "postinstall": "npm run build",
-    "build": "react-scripts build",
+    "build": "GENERATE_SOURCEMAP=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config .prettierrc"
