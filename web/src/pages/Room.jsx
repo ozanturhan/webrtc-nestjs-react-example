@@ -139,7 +139,7 @@ export const Room = () => {
       <OrganismsHeader
         onNavItemSelect={(user) => peerVideoConnection.callUser(user.id)}
         navItems={connectedUsers.map((user) => ({ id: user, title: user }))}
-        title="Learn Something"
+        title="WebRTC Example"
         picture={logo}
       />
 
