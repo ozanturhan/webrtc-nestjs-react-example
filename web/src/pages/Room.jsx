@@ -157,9 +157,9 @@ export const Room = () => {
 
       <div className="main" ref={mainRef}>
         <Gallery ref={galleryRef}>
-          <MoleculesVideo ref={localVideo} autoplay muted playsinline />
+          <MoleculesVideo ref={localVideo} autoPlay playsInline muted  />
           {connectedUsers.map((user) => (
-              <MoleculesVideo key={user} onClick={() => peerVideoConnection.callUser(user)} id={user} autoplay playsinline />
+              <MoleculesVideo key={user} onClick={() => peerVideoConnection.callUser(user)} id={user} autoPlay playsInline />
           ))}
         </Gallery>
 
