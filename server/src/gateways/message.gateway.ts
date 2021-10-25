@@ -35,10 +35,11 @@ export class MessageGateway implements OnGatewayInit, OnGatewayDisconnect {
         users: this.activeSockets
           .filter((socket) => socket.room === room && socket.id !== client.id)
           .map((existingSocket) => existingSocket.id),
+        current: client.id,
       });
 
-      client.broadcast.emit(`${room}-update-user-list`, {
-        users: [client.id],
+      client.broadcast.emit(`${room}-add-user`, {
+        user: client.id,
       });
     }
 

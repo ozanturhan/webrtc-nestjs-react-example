@@ -1,10 +1,16 @@
 import styles from '../App.css';
 import { OrganismsHeader, OrganismsMain } from '../components/organisms';
 import logo from '../images/logo.svg';
-import { MoleculesLocalVideo, MoleculesRemoteVideo, MoleculesVideoControls } from '../components/molecules';
+import {
+  MoleculesLocalVideo,
+  MoleculesRemoteVideo,
+  MoleculesVideo,
+  MoleculesVideoControls,
+} from '../components/molecules';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPeerConnectionContext } from '../utils/peer-video-connection';
 import { useParams } from 'react-router-dom';
+import { Gallery } from '../components/layout';
 
 const senders = [];
 const peerVideoConnection = createPeerConnectionContext();
@@ -17,8 +23,11 @@ export const Room = () => {
   const [startTimer, setStartTimer] = useState(false);
   const [isFullScreen, setFullScreen] = useState(false);
 
+  const galleryRef = useRef();
+
+  useCalculateVideoLayout(galleryRef, connectedUsers.length + 1);
+
   const localVideo = useRef();
-  const remoteVideo = useRef();
   const mainRef = useRef();
 
   useEffect(() => {
@@ -33,44 +42,48 @@ export const Room = () => {
           audio: true,
         });
 
-        if (localVideo) {
+        if (localVideo.current) {
           localVideo.current.srcObject = stream;
         }
 
-        stream.getTracks().forEach((track) => {
-          senders.push(peerVideoConnection.peerConnection.addTrack(track, stream));
+        setUserMediaStream(stream);
+
+        peerVideoConnection.joinRoom(room);
+        peerVideoConnection.onAddUser((user) => {
+          setConnectedUsers((users) => [...users, user]);
+          peerVideoConnection.addPeerConnection(`${user}`, localVideo.current.srcObject, (_stream) => {
+            document.getElementById(user).srcObject = _stream;
+          });
         });
 
-        setUserMediaStream(stream);
+        peerVideoConnection.onRemoveUser((socketId) => {
+          setConnectedUsers((users) => users.filter((user) => user !== socketId));
+          peerVideoConnection.removePeerConnection(socketId);
+        });
+
+        peerVideoConnection.onUpdateUserList((users) => {
+          setConnectedUsers(users);
+          users.forEach((user) => {
+            peerVideoConnection.addPeerConnection(`${user}`, localVideo.current.srcObject, (_stream) => {
+              document.getElementById(user).srcObject = _stream;
+            });
+            peerVideoConnection.callUser(user);
+          });
+        });
+
+        peerVideoConnection.onAnswerMade((socket) => peerVideoConnection.callUser(socket));
       }
     };
 
     createMediaStream();
-  }, [userMediaStream]);
-
-  useEffect(() => {
-    peerVideoConnection.joinRoom(room);
-    peerVideoConnection.onRemoveUser((socketId) =>
-      setConnectedUsers((users) => users.filter((user) => user !== socketId)),
-    );
-    peerVideoConnection.onUpdateUserList((users) => setConnectedUsers(users));
-    peerVideoConnection.onAnswerMade((socket) => peerVideoConnection.callUser(socket));
-    peerVideoConnection.onCallRejected((data) => alert(`User: "Socket: ${data.socket}" rejected your call.`));
-    peerVideoConnection.onTrack((stream) => (remoteVideo.current.srcObject = stream));
-
-    peerVideoConnection.onConnected(() => {
-      setStartTimer(true);
-    });
-    peerVideoConnection.onDisconnected(() => {
-      setStartTimer(false);
-      remoteVideo.current.srcObject = null;
-    });
   }, []);
 
   async function shareScreen() {
     const stream = displayMediaStream || (await navigator.mediaDevices.getDisplayMedia());
 
-    await senders.find((sender) => sender.track.kind === 'video').replaceTrack(stream.getTracks()[0]);
+    await peerVideoConnection.senders
+      .find((sender) => sender.track.kind === 'video')
+      .replaceTrack(stream.getTracks()[0]);
 
     stream.getVideoTracks()[0].addEventListener('ended', () => {
       cancelScreenSharing(stream);
@@ -82,7 +95,7 @@ export const Room = () => {
   }
 
   async function cancelScreenSharing(stream) {
-    await senders
+    await peerVideoConnection.senders
       .find((sender) => sender.track.kind === 'video')
       .replaceTrack(userMediaStream.getTracks().find((track) => track.kind === 'video'));
 
@@ -135,15 +148,99 @@ export const Room = () => {
   }
 
   return (
-    <div className={styles.container}>
+    <div className="container">
       <OrganismsHeader
         onNavItemSelect={(user) => peerVideoConnection.callUser(user.id)}
-        navItems={connectedUsers.map((user) => ({ id: user, title: user }))}
         title="WebRTC Example"
         picture={logo}
       />
 
-      <OrganismsMain ref={mainRef}>
+      <div className="main" ref={mainRef}>
+        <Gallery ref={galleryRef}>
+          <MoleculesVideo ref={localVideo} autoPlay muted />
+          {connectedUsers.map((user) => (
+            <MoleculesVideo key={user} onClick={() => peerVideoConnection.callUser(user)} id={user} autoPlay />
+          ))}
+        </Gallery>
+
+        <MoleculesVideoControls
+          isScreenSharing={Boolean(displayMediaStream)}
+          onScreenShare={handleScreenSharing}
+          isFullScreen={isFullScreen}
+          onFullScreen={handleFullScreen}
+          isTimerStarted={startTimer}
+        />
+      </div>
+    </div>
+  );
+};
+
+// https://adosov.dev/zoom-video-gallery-p1/
+function calculateLayout(containerWidth, containerHeight, videoCount, aspectRatio) {
+  let bestLayout = {
+    area: 0,
+    cols: 0,
+    rows: 0,
+    width: 0,
+    height: 0,
+  };
+
+  // brute-force search layout where video occupy the largest area of the container
+  for (let cols = 1; cols <= videoCount; cols++) {
+    const rows = Math.ceil(videoCount / cols);
+    const hScale = containerWidth / (cols * aspectRatio);
+    const vScale = containerHeight / rows;
+    let width;
+    let height;
+    if (hScale <= vScale) {
+      width = Math.floor(containerWidth / cols);
+      height = Math.floor(width / aspectRatio);
+    } else {
+      height = Math.floor(containerHeight / rows);
+      width = Math.floor(height * aspectRatio);
+    }
+    const area = width * height;
+    if (area > bestLayout.area) {
+      bestLayout = {
+        area,
+        width,
+        height,
+        rows,
+        cols,
+      };
+    }
+  }
+  return bestLayout;
+}
+
+const useCalculateVideoLayout = (gallery, videoCount) => {
+  useEffect(() => {
+    const recalculateLayout = () => {
+      const headerHeight = document.getElementsByTagName('header')?.[0]?.offsetHeight;
+      const aspectRatio = 16 / 9;
+
+      const screenWidth = document.body.getBoundingClientRect().width;
+      const screenHeight = document.body.getBoundingClientRect().height - headerHeight;
+
+      const { width, height, cols } = calculateLayout(screenWidth, screenHeight, videoCount, aspectRatio);
+
+      gallery.current?.style?.setProperty('--width', width + 'px');
+      gallery.current?.style?.setProperty('--height', height + 'px');
+      gallery.current?.style?.setProperty('--cols', cols + '');
+    };
+
+    recalculateLayout();
+
+    window.addEventListener('resize', recalculateLayout);
+
+    return () => {
+      window.removeEventListener('resize', recalculateLayout);
+    };
+  }, [gallery.current, videoCount]);
+};
+/*
+
+<OrganismsMain ref={mainRef}>
         <MoleculesRemoteVideo ref={remoteVideo} autoPlay />
         <MoleculesLocalVideo ref={localVideo} autoPlay muted />
         <MoleculesVideoControls
@@ -154,6 +251,4 @@ export const Room = () => {
           isTimerStarted={startTimer}
         />
       </OrganismsMain>
-    </div>
-  );
-};
+ */
