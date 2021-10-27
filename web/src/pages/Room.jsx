@@ -72,10 +72,10 @@ export const Room = () => {
   async function shareScreen() {
     const stream = displayMediaStream || (await navigator.mediaDevices.getDisplayMedia());
 
-    const sender = await peerVideoConnection.senders.find((sender) => sender.track.kind === 'video');
+    const senders = await peerVideoConnection.senders.filter((sender) => sender.track.kind === 'video');
 
-    if (sender) {
-      sender.replaceTrack(stream.getTracks()[0]);
+    if (senders) {
+      senders.forEach(sender => sender.replaceTrack(stream.getTracks()[0]));
     }
 
     stream.getVideoTracks()[0].addEventListener('ended', () => {
@@ -88,10 +88,10 @@ export const Room = () => {
   }
 
   async function cancelScreenSharing(stream) {
-    const sender = await peerVideoConnection.senders.find((sender) => sender.track.kind === 'video');
+    const senders = await peerVideoConnection.senders.filter((sender) => sender.track.kind === 'video');
 
-    if (sender) {
-      sender.replaceTrack(userMediaStream.getTracks().find((track) => track.kind === 'video'));
+    if (senders) {
+      senders.forEach(sender=> sender.replaceTrack(userMediaStream.getTracks().find((track) => track.kind === 'video')));
     }
 
     localVideo.current.srcObject = userMediaStream;
