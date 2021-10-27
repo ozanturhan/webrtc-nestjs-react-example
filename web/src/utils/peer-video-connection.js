@@ -36,8 +36,11 @@ class PeerConnectionSession {
     this.peerConnections[id].addEventListener('connectionstatechange', this.listeners[id]);
 
     this.peerConnections[id].ontrack = function ({ streams: [stream] }) {
+      console.log({ id, stream });
       callback(stream);
     };
+
+    console.log(this.peerConnections);
   }
 
   removePeerConnection(id) {
@@ -48,10 +51,12 @@ class PeerConnectionSession {
   isAlreadyCalling = false;
 
   async callUser(to) {
-    const offer = await this.peerConnections[to].createOffer();
-    await this.peerConnections[to].setLocalDescription(new RTCSessionDescription(offer));
+    if (this.peerConnections[to].iceConnectionState === 'new') {
+      const offer = await this.peerConnections[to].createOffer();
+      await this.peerConnections[to].setLocalDescription(new RTCSessionDescription(offer));
 
-    this.socket.emit('call-user', { offer, to });
+      this.socket.emit('call-user', { offer, to });
+    }
   }
 
   onConnected(callback) {
@@ -101,11 +106,7 @@ class PeerConnectionSession {
   onAnswerMade(callback) {
     this.socket.on('answer-made', async (data) => {
       await this.peerConnections[data.socket].setRemoteDescription(new RTCSessionDescription(data.answer));
-
-      if (!this.isAlreadyCalling) {
-        callback(data.socket);
-        this.isAlreadyCalling = true;
-      }
+      callback(data.socket);
     });
   }
 }
