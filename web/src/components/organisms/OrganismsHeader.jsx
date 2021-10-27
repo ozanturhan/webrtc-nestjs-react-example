@@ -45,27 +45,17 @@ const MenuIcon = styled.input.attrs({
   }
 `;
 
-export const OrganismsHeader = ({ title, picture, navItems, onNavItemSelect }) => {
-  const [isLeftSideShow, setLeftSideShow] = useState(false);
+export const OrganismsHeader = ({ title, picture }) => {
   return (
     <>
       <HeaderContainer>
         <div className="toolbar">
-          <MenuIcon onClick={() => setLeftSideShow((flag) => !flag)} />
-
           <AtomsLogo>{title}</AtomsLogo>
 
           <div style={{ flexGrow: 1 }} />
           <AtomsProfilePicture picture={picture} />
         </div>
       </HeaderContainer>
-      {navItems && (
-        <MoleculesLeftSide
-          isLeftSideShow={isLeftSideShow}
-          onItemSelect={(user) => onNavItemSelect(user)}
-          items={navItems}
-        />
-      )}
     </>
   );
 };

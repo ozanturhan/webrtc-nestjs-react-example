@@ -1,12 +1,10 @@
-import styles from '../App.css';
-import { OrganismsHeader, OrganismsMain } from '../components/organisms';
 import logo from '../images/logo.svg';
-import { MoleculesLocalVideo, MoleculesRemoteVideo, MoleculesVideoControls } from '../components/molecules';
+import { MoleculesVideo, MoleculesVideoControls, OrganismsHeader, Gallery } from '../components';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPeerConnectionContext } from '../utils/peer-video-connection';
 import { useParams } from 'react-router-dom';
+import { useCalculateVideoLayout } from '../hooks';
 
-const senders = [];
 const peerVideoConnection = createPeerConnectionContext();
 
 export const Room = () => {
@@ -14,11 +12,13 @@ export const Room = () => {
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [userMediaStream, setUserMediaStream] = useState(null);
   const [displayMediaStream, setDisplayMediaStream] = useState(null);
-  const [startTimer, setStartTimer] = useState(false);
   const [isFullScreen, setFullScreen] = useState(false);
 
+  const galleryRef = useRef();
+
+  useCalculateVideoLayout(galleryRef, connectedUsers.length + 1);
+
   const localVideo = useRef();
-  const remoteVideo = useRef();
   const mainRef = useRef();
 
   useEffect(() => {
@@ -33,44 +33,50 @@ export const Room = () => {
           audio: true,
         });
 
-        if (localVideo) {
+        if (localVideo.current) {
           localVideo.current.srcObject = stream;
         }
 
-        stream.getTracks().forEach((track) => {
-          senders.push(peerVideoConnection.peerConnection.addTrack(track, stream));
+        setUserMediaStream(stream);
+
+        peerVideoConnection.joinRoom(room);
+        peerVideoConnection.onAddUser((user) => {
+          setConnectedUsers((users) => [...users, user]);
+          peerVideoConnection.addPeerConnection(`${user}`, localVideo.current.srcObject, (_stream) => {
+            document.getElementById(user).srcObject = _stream;
+          });
+          peerVideoConnection.callUser(user);
         });
 
-        setUserMediaStream(stream);
+        peerVideoConnection.onRemoveUser((socketId) => {
+          setConnectedUsers((users) => users.filter((user) => user !== socketId));
+          peerVideoConnection.removePeerConnection(socketId);
+        });
+
+        peerVideoConnection.onUpdateUserList(async (users) => {
+          setConnectedUsers(users);
+          for (const user of users) {
+            peerVideoConnection.addPeerConnection(`${user}`, localVideo.current.srcObject, (_stream) => {
+              document.getElementById(user).srcObject = _stream;
+            });
+          }
+        });
+
+        peerVideoConnection.onAnswerMade((socket) => peerVideoConnection.callUser(socket));
       }
     };
 
     createMediaStream();
-  }, [userMediaStream]);
-
-  useEffect(() => {
-    peerVideoConnection.joinRoom(room);
-    peerVideoConnection.onRemoveUser((socketId) =>
-      setConnectedUsers((users) => users.filter((user) => user !== socketId)),
-    );
-    peerVideoConnection.onUpdateUserList((users) => setConnectedUsers(users));
-    peerVideoConnection.onAnswerMade((socket) => peerVideoConnection.callUser(socket));
-    peerVideoConnection.onCallRejected((data) => alert(`User: "Socket: ${data.socket}" rejected your call.`));
-    peerVideoConnection.onTrack((stream) => (remoteVideo.current.srcObject = stream));
-
-    peerVideoConnection.onConnected(() => {
-      setStartTimer(true);
-    });
-    peerVideoConnection.onDisconnected(() => {
-      setStartTimer(false);
-      remoteVideo.current.srcObject = null;
-    });
   }, []);
 
   async function shareScreen() {
     const stream = displayMediaStream || (await navigator.mediaDevices.getDisplayMedia());
 
-    await senders.find((sender) => sender.track.kind === 'video').replaceTrack(stream.getTracks()[0]);
+    const sender = await peerVideoConnection.senders.find((sender) => sender.track.kind === 'video');
+
+    if (sender) {
+      sender.replaceTrack(stream.getTracks()[0]);
+    }
 
     stream.getVideoTracks()[0].addEventListener('ended', () => {
       cancelScreenSharing(stream);
@@ -82,9 +88,11 @@ export const Room = () => {
   }
 
   async function cancelScreenSharing(stream) {
-    await senders
-      .find((sender) => sender.track.kind === 'video')
-      .replaceTrack(userMediaStream.getTracks().find((track) => track.kind === 'video'));
+    const sender = await peerVideoConnection.senders.find((sender) => sender.track.kind === 'video');
+
+    if (sender) {
+      sender.replaceTrack(userMediaStream.getTracks().find((track) => track.kind === 'video'));
+    }
 
     localVideo.current.srcObject = userMediaStream;
     stream.getTracks().forEach((track) => track.stop());
@@ -135,25 +143,32 @@ export const Room = () => {
   }
 
   return (
-    <div className={styles.container}>
-      <OrganismsHeader
-        onNavItemSelect={(user) => peerVideoConnection.callUser(user.id)}
-        navItems={connectedUsers.map((user) => ({ id: user, title: user }))}
-        title="WebRTC Example"
-        picture={logo}
-      />
+    <div className="container">
+      <OrganismsHeader title="WebRTC Example" picture={logo} />
 
-      <OrganismsMain ref={mainRef}>
-        <MoleculesRemoteVideo ref={remoteVideo} autoPlay />
-        <MoleculesLocalVideo ref={localVideo} autoPlay muted />
+      <div className="main" ref={mainRef}>
+        <Gallery ref={galleryRef}>
+          <MoleculesVideo ref={localVideo} autoPlay playsInline muted />
+          {connectedUsers.map((user) => (
+            <MoleculesVideo
+              key={user}
+              onClick={() => {
+                peerVideoConnection.callUser(user);
+              }}
+              id={user}
+              autoPlay
+              playsInline
+            />
+          ))}
+        </Gallery>
+
         <MoleculesVideoControls
           isScreenSharing={Boolean(displayMediaStream)}
           onScreenShare={handleScreenSharing}
           isFullScreen={isFullScreen}
           onFullScreen={handleFullScreen}
-          isTimerStarted={startTimer}
         />
-      </OrganismsMain>
+      </div>
     </div>
   );
 };

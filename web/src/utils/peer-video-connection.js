@@ -10,27 +10,53 @@ class PeerConnectionSession {
   _onConnected;
   _onDisconnected;
   _room;
+  peerConnections = {};
+  senders = [];
+  listeners = {};
 
-  constructor(socket, peerConnection) {
+  constructor(socket) {
     this.socket = socket;
-    this.peerConnection = peerConnection;
-
-    this.peerConnection.addEventListener('connectionstatechange', (event) => {
-      console.log(this.peerConnection.connectionState);
-      const fn = this['_on' + capitalizeFirstLetter(this.peerConnection.connectionState)];
-      fn && fn(event);
-    });
     this.onCallMade();
   }
 
+  addPeerConnection(id, stream, callback) {
+    this.peerConnections[id] = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    });
+
+    stream.getTracks().forEach((track) => {
+      this.senders.push(this.peerConnections[id].addTrack(track, stream));
+    });
+
+    this.listeners[id] = (event) => {
+      const fn = this['_on' + capitalizeFirstLetter(this.peerConnections[id].connectionState)];
+      fn && fn(event, id);
+    };
+
+    this.peerConnections[id].addEventListener('connectionstatechange', this.listeners[id]);
+
+    this.peerConnections[id].ontrack = function ({ streams: [stream] }) {
+      console.log({ id, stream });
+      callback(stream);
+    };
+
+    console.log(this.peerConnections);
+  }
+
+  removePeerConnection(id) {
+    this.peerConnections[id].removeEventListener('connectionstatechange', this.listeners[id]);
+    delete this.peerConnections[id];
+  }
+
   isAlreadyCalling = false;
-  getCalled = false;
 
   async callUser(to) {
-    const offer = await this.peerConnection.createOffer();
-    await this.peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+    if (this.peerConnections[to].iceConnectionState === 'new') {
+      const offer = await this.peerConnections[to].createOffer();
+      await this.peerConnections[to].setLocalDescription(new RTCSessionDescription(offer));
 
-    this.socket.emit('call-user', { offer, to });
+      this.socket.emit('call-user', { offer, to });
+    }
   }
 
   onConnected(callback) {
@@ -48,27 +74,20 @@ class PeerConnectionSession {
 
   onCallMade() {
     this.socket.on('call-made', async (data) => {
-      if (this.getCalled) {
-        const confirmed = window.confirm(`User "Socket: ${data.socket}" wants to call you. Do accept this call?`);
-
-        if (!confirmed) {
-          this.socket.emit('reject-call', {
-            from: data.socket,
-          });
-
-          return;
-        }
-      }
-
-      await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-      const answer = await this.peerConnection.createAnswer();
-      await this.peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+      await this.peerConnections[data.socket].setRemoteDescription(new RTCSessionDescription(data.offer));
+      const answer = await this.peerConnections[data.socket].createAnswer();
+      await this.peerConnections[data.socket].setLocalDescription(new RTCSessionDescription(answer));
 
       this.socket.emit('make-answer', {
         answer,
         to: data.socket,
       });
-      this.getCalled = true;
+    });
+  }
+
+  onAddUser(callback) {
+    this.socket.on(`${this._room}-add-user`, async ({ user }) => {
+      callback(user);
     });
   }
 
@@ -79,41 +98,21 @@ class PeerConnectionSession {
   }
 
   onUpdateUserList(callback) {
-    this.socket.on(`${this._room}-update-user-list`, ({ users }) => {
-      callback(users);
+    this.socket.on(`${this._room}-update-user-list`, ({ users, current }) => {
+      callback(users, current);
     });
   }
 
   onAnswerMade(callback) {
     this.socket.on('answer-made', async (data) => {
-      await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-
-      if (!this.isAlreadyCalling) {
-        callback(data.socket);
-        this.isAlreadyCalling = true;
-      }
+      await this.peerConnections[data.socket].setRemoteDescription(new RTCSessionDescription(data.answer));
+      callback(data.socket);
     });
-  }
-
-  onCallRejected(callback) {
-    this.socket.on('call-rejected', (data) => {
-      callback(data);
-    });
-  }
-
-  onTrack(callback) {
-    this.peerConnection.ontrack = function ({ streams: [stream] }) {
-      callback(stream);
-    };
   }
 }
 
 export const createPeerConnectionContext = () => {
-  const peerConnection = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-  });
-  console.log('Socket URL', process.env.REACT_APP_SOCKET_URL);
   const socket = io(process.env.REACT_APP_SOCKET_URL);
 
-  return new PeerConnectionSession(socket, peerConnection);
+  return new PeerConnectionSession(socket);
 };

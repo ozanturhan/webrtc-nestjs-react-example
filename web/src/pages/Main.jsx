@@ -11,7 +11,7 @@ export const Main = () => {
 
   return (
     <div className={styles.container}>
-      <OrganismsHeader title="Learn Something" picture={logo} />
+      <OrganismsHeader title="WebRTC Example" picture={logo} />
       <OrganismsMain full>
         <div style={{ color: 'white', display: 'flex' }}>
           <div
