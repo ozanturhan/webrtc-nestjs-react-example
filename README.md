@@ -1,4 +1,4 @@
-# WebRTC Example With React & NestJS
+# WebRTC Multi Peers Example With React & NestJS
 
 Heroku App: https://react-socket-io-webrtc-client.herokuapp.com/
 
