@@ -1,9 +1,9 @@
 import logo from '../images/logo.svg';
-import { MoleculesVideo, MoleculesVideoControls, OrganismsHeader, Gallery } from '../components';
+import {MoleculesVideoControls, OrganismsHeader, Gallery, MoleculesRemoteVideo, MoleculesLocalVideo} from '../components';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPeerConnectionContext } from '../utils/peer-video-connection';
 import { useParams } from 'react-router-dom';
-import { useCalculateVideoLayout } from '../hooks';
+import {useCalculateVideoLayout} from '../hooks';
 
 const peerVideoConnection = createPeerConnectionContext();
 
@@ -19,7 +19,14 @@ export const Room = () => {
   useCalculateVideoLayout(galleryRef, connectedUsers.length + 1);
 
   const localVideo = useRef();
+  const remoteVideoRefs = useRef([]);
+
   const mainRef = useRef();
+
+  useEffect(() => {
+    remoteVideoRefs.current = remoteVideoRefs.current.slice(0, connectedUsers.length);
+  }, [connectedUsers]);
+
 
   useEffect(() => {
     const createMediaStream = async () => {
@@ -146,15 +153,13 @@ export const Room = () => {
     <div className="container">
       <OrganismsHeader title="WebRTC Example" picture={logo} />
 
+
       <div className="main" ref={mainRef}>
         <Gallery ref={galleryRef}>
-          <MoleculesVideo ref={localVideo} autoPlay playsInline muted />
+          <MoleculesLocalVideo ref={localVideo} autoPlay playsInline muted />
           {connectedUsers.map((user) => (
-            <MoleculesVideo
+            <MoleculesRemoteVideo
               key={user}
-              onClick={() => {
-                peerVideoConnection.callUser(user);
-              }}
               id={user}
               autoPlay
               playsInline
