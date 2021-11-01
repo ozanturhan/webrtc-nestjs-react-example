@@ -1,7 +1,16 @@
-import styled from 'styled-components';
 import React from 'react';
+import styled from 'styled-components';
+import logo from '../../images/logo.svg';
 
-const Container = styled.div`
+export const RightLogo = styled.h1`
+  color: white;
+  font-size: 1.5rem;
+  @media screen and (max-width: 936px) {
+    font-size: 1rem;
+  }
+`;
+
+const LeftLogoContainer = styled.div`
   height: inherit;
   display: flex;
   align-items: center;
@@ -33,12 +42,12 @@ const Container = styled.div`
   }
 `;
 
-export const AtomsProfilePicture = ({ picture }) => {
+export const LeftLogo = () => {
   return (
-    <Container>
+    <LeftLogoContainer>
       <span>
-        <img src={picture} alt="Profile Photo" />
+        <img src={logo} alt="React Logo" />
       </span>
-    </Container>
+    </LeftLogoContainer>
   );
 };

@@ -1,9 +1,8 @@
 import React, { useRef } from 'react';
-import { OrganismsHeader, OrganismsMain } from '../components/organisms';
-import logo from '../images/logo.svg';
-import styles from '../App.css';
-import { Button } from '../components/atoms';
 import { useHistory } from 'react-router-dom';
+import styles from '../App.css';
+import { Button, Header, OrganismsMain } from '../components';
+import logo from '../images/logo.svg';
 
 export const Main = () => {
   let history = useHistory();
@@ -11,7 +10,7 @@ export const Main = () => {
 
   return (
     <div className={styles.container}>
-      <OrganismsHeader title="WebRTC Example" picture={logo} />
+      <Header title="WebRTC Example" picture={logo} />
       <OrganismsMain full>
         <div style={{ color: 'white', display: 'flex' }}>
           <div

@@ -46,6 +46,7 @@ class PeerConnectionSession {
   removePeerConnection(id) {
     this.peerConnections[id].removeEventListener('connectionstatechange', this.listeners[id]);
     delete this.peerConnections[id];
+    delete this.listeners[id];
   }
 
   isAlreadyCalling = false;
@@ -108,6 +109,12 @@ class PeerConnectionSession {
       await this.peerConnections[data.socket].setRemoteDescription(new RTCSessionDescription(data.answer));
       callback(data.socket);
     });
+  }
+
+  clearConnections() {
+    this.socket.close();
+    this.senders = [];
+    Object.keys(this.peerConnections).forEach(this.removePeerConnection.bind(this));
   }
 }
 

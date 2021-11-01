@@ -1,7 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { AtomsFullScreenButton, AtomsShareScreen } from '../atoms';
+import React, { useState } from 'react';
+import { Button } from '../atoms';
 
-export const MoleculesVideoControls = ({ isScreenSharing, onScreenShare, isFullScreen, onFullScreen }) => {
+export const MoleculesVideoControls = ({ isScreenShared, onScreenShare, onToggleFullscreen }) => {
+  const [isFullscreen, setFullscreen] = useState(false);
+
+  const handleToggleFullscreen = () => {
+    const value = !isFullscreen;
+    setFullscreen(value);
+    onToggleFullscreen(value);
+  };
+
+  const handleScreenShare = () => {
+    onScreenShare(!isScreenShared);
+  };
+
   return (
     <div
       style={{
@@ -13,8 +25,8 @@ export const MoleculesVideoControls = ({ isScreenSharing, onScreenShare, isFullS
       }}
     >
       <div>
-        <AtomsShareScreen isSharing={isScreenSharing} onToggle={() => onScreenShare(!isScreenSharing)} />
-        <AtomsFullScreenButton isFullScreen={isFullScreen} onToggle={() => onFullScreen(!isFullScreen)} />
+        <Button onClick={handleScreenShare}>{isScreenShared ? 'Cancel Sharing' : 'Share Screen'}</Button>
+        <Button onClick={handleToggleFullscreen}>{isFullscreen ? 'Exit Full Screen' : 'Full Screen'}</Button>;
       </div>
     </div>
   );
