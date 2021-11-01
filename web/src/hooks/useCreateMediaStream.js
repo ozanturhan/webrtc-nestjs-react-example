@@ -20,7 +20,7 @@ export const useCreateMediaStream = (localVideoRef) => {
     };
 
     createMediaStream();
-  }, []);
+  }, [localVideoRef]);
 
   return userMediaStream;
 };

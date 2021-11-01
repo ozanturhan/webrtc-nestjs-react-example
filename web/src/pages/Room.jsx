@@ -7,14 +7,14 @@ import { toggleFullscreen } from '../utils/helpers';
 export const Room = () => {
   const { room } = useParams();
   const galleryRef = useRef();
-  const localVideo = useRef();
+  const localVideoRef = useRef();
   const mainRef = useRef();
 
-  const userMediaStream = useCreateMediaStream(localVideo);
+  const userMediaStream = useCreateMediaStream(localVideoRef);
   const { connectedUsers, shareScreen, cancelScreenSharing, isScreenShared } = useStartPeerSession(
     room,
     userMediaStream,
-    localVideo,
+    localVideoRef,
   );
 
   useCalculateVideoLayout(galleryRef, connectedUsers.length + 1);
@@ -37,7 +37,7 @@ export const Room = () => {
 
       <div className="main" ref={mainRef}>
         <Gallery ref={galleryRef}>
-          <MoleculesLocalVideo ref={localVideo} autoPlay playsInline muted />
+          <MoleculesLocalVideo ref={localVideoRef} autoPlay playsInline muted />
           {connectedUsers.map((user) => (
             <MoleculesRemoteVideo key={user} id={user} autoPlay playsInline />
           ))}
