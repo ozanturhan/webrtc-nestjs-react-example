@@ -24,5 +24,5 @@ export const useCalculateVideoLayout = (gallery, videoCount) => {
     return () => {
       window.removeEventListener('resize', recalculateLayout);
     };
-  }, [gallery.current, videoCount]);
+  }, [gallery, videoCount]);
 };

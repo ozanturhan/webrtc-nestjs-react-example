@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Gallery, Header, MoleculesLocalVideo, MoleculesRemoteVideo, MoleculesVideoControls } from '../components';
+import { Gallery, Header, LocalVideo, RemoteVideo, VideoControls } from '../components';
 import { useCalculateVideoLayout, useCreateMediaStream, useStartPeerSession } from '../hooks';
 import { toggleFullscreen } from '../utils/helpers';
 
@@ -37,13 +37,13 @@ export const Room = () => {
 
       <div className="main" ref={mainRef}>
         <Gallery ref={galleryRef}>
-          <MoleculesLocalVideo ref={localVideoRef} autoPlay playsInline muted />
+          <LocalVideo ref={localVideoRef} autoPlay playsInline muted />
           {connectedUsers.map((user) => (
-            <MoleculesRemoteVideo key={user} id={user} autoPlay playsInline />
+            <RemoteVideo key={user} id={user} autoPlay playsInline />
           ))}
         </Gallery>
 
-        <MoleculesVideoControls
+        <VideoControls
           isScreenShared={isScreenShared}
           onScreenShare={handleScreenSharing}
           onToggleFullscreen={handleFullscreen}

@@ -1,2 +1,3 @@
-export * from './MoleculesVideo';
-export * from './MoleculesVideoControls';
+export * from './LocalVideo';
+export * from './RemoteVideo';
+export * from './VideoControls';

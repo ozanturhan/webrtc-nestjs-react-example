@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../atoms';
 
-export const MoleculesVideoControls = ({ isScreenShared, onScreenShare, onToggleFullscreen }) => {
+export const VideoControls = ({ isScreenShared, onScreenShare, onToggleFullscreen }) => {
   const [isFullscreen, setFullscreen] = useState(false);
 
   const handleToggleFullscreen = () => {
@@ -15,6 +15,7 @@ export const MoleculesVideoControls = ({ isScreenShared, onScreenShare, onToggle
   };
 
   return (
+    // replace with styled component
     <div
       style={{
         position: 'absolute',
