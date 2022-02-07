@@ -1,9 +1,9 @@
 import React, { forwardRef } from 'react';
-import { useCalculateVoiceVolume } from '../../hooks';
 import { Video, VideoContainer, VoiceVisualizer } from '../atoms';
 
 export const LocalVideo = forwardRef((props, ref) => {
-  useCalculateVoiceVolume(ref?.current?.srcObject, 'local');
+  // it causes echoing local video voice even if we past mute prop to video element.
+  // useCalculateVoiceVolume(ref?.current?.srcObject, 'local');
 
   return (
     <VideoContainer>
